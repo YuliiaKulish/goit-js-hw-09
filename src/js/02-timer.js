@@ -2,14 +2,15 @@ import flatpickr from "flatpickr";
 import 'flatpickr/dist/flatpickr.min.css';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-let initDate = null;
-const currentDate = Date.now();
+let timerId = null;
 const btnStart = document.querySelector("button[data-start]");
 btnStart.disabled = true;
-const input = document.querySelector(".timer");
-const inputF = document.querySelector(".field");
-
-
+const day = document.querySelector("span[data-days]");
+const hour = document.querySelector("span[data-hours]");
+const minute = document.querySelector("span[data-minutes]");
+const second = document.querySelector("span[data-seconds]");
+const input = document.querySelector('#datetime-picker');
+const timerHtml = document.querySelector('.timer');
 
 const options = {
   enableTime: true,
@@ -17,36 +18,50 @@ const options = {
   defaultDate: new Date(),  
   minuteIncrement: 1,
   onClose(selectedDates) {
-    initDate = selectedDates[0];      
-      if (initDate > currentDate) {
+    const { defaultDate } = this.config;   
+    if (selectedDates[0] < defaultDate) {
+      Notify.failure('Please choose a date in the future');
+      btnStart.disabled = true;
+    } else {
+      Notify.success('Date is correct');
       btnStart.disabled = false;
-    } else {Notify.failure("Please choose a date in the future");
     }; 
   },
 };
 
-const fpickr = flatpickr("#datetime-picker", options);
-const daysEl = document.querySelector("span[data-days]");
-const hoursEl = document.querySelector("span[data-hours]");
-const minutesEl = document.querySelector("span[data-minutes]");
-const secondsEl = document.querySelector("span[data-seconds]");
+flatpickr(input, options);
 
-btnStart.addEventListener("click", (() => {
-  const intervalId = setInterval (() => {
-    const currentDate = Date.now();
-    let alfaDate = initDate - currentDate;
-    daysEl.textContent = convertMs(alfaDate).days;
-    hoursEl.textContent = convertMs(alfaDate).hours;
-    minutesEl.textContent = convertMs(alfaDate).minutes;
-    secondsEl.textContent = convertMs(alfaDate).seconds;
+btnStart.addEventListener('click', startTimer);
+
+function startTimer() {
+  timerId = setInterval(() => {
+    const timerData = new Date(input.value) - new Date();
+
     btnStart.disabled = true;
-    fpickr.input.setAttribute("disabled", "disabled")
-  }, 1000);
-}));
 
-function addLeadingZero (value){
-  return String(value).padStart(2, "0");
+    if (timerData >= 0) {
+      const timeObject = convertMs(timerData);
+
+      day.textContent =  addLeadingZero(timeObject.days);
+      hour.textContent = addLeadingZero(timeObject.hours);
+      minute.textContent = addLeadingZero(timeObject.minutes);
+      second.textContent = addLeadingZero(timeObject.seconds);
+
+      if (timerData <= 10000) {
+        timerHtml.style.color = 'red';
+      }
+    } else {
+      Notify.success('Countdown finished');
+      timerHtml.style.color = 'black';
+      clearInterval(timerId);
+    }
+  }, 1000);
+}
+
+function addLeadingZero (value) {
+  return value.toString().padStart(2, '0');
 };
+
 function convertMs(ms) {
   // Number of milliseconds per unit of time
   const second = 1000;
